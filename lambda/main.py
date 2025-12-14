@@ -1,72 +1,56 @@
 import os
-from dotenv import load_dotenv
-from open_ai import open_ai_client
-import subprocess
-from s3 import s3
+import json
 import logging
-from eleven_labs import eleven_labs_client
+from dotenv import load_dotenv
 
 load_dotenv()
 
+from repositories.translation_jobs import get_translation_job, update_translation_job_status
+from ai.open_ai import transcribe_audio, translate_text
+from ai.eleven_labs import generate_audio
+from repositories.generated_audio import save_generated_audio
+from lib.utils import get_audio_from_s3, save_audio_to_s3
+
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-def main():
-    desired_language = "spanish"
-    key = "audio.mp3"
+def main(event):
+    request_body = json.loads(event['Records'][0]['body'])
 
-    logger.info(f"Processing file with key: {key} and desired language: {desired_language}")
-    bucket_name = os.getenv("AWS_BUCKET_NAME")
+    media_file_id = request_body['mediaFileId']
+    target_language = request_body['targetLanguage']
+    translation_job_id = request_body['translationJobId']
+    user_id = request_body['userId']
 
-    audio_file = stream_from_s3(bucket_name, key)
+    if not media_file_id or not target_language or not translation_job_id or not user_id:
+        logger.error(F"Media file ID or target language or translation job ID or user ID is missing")
+        return
+    
+    translation_job = get_translation_job(translation_job_id)
+    file_name = translation_job['media_files']['file_name']
 
-    transcribed_text = transcribe_audio(audio_file)
-    translated_text = translate_text(transcribed_text, desired_language)
+    if not translation_job:
+        logger.error(F"Translation job not found")
+        return
 
-    audio = eleven_labs_client.text_to_speech.convert(
-        text=translated_text,
-        voice_id="JBFqnCBsd6RMkjVDRZzb",
-        model_id="eleven_multilingual_v2",
-        output_format="mp3_44100_128"
-    )
+    logger.info(f"Processing translation job with id: {translation_job_id} and target language: {target_language}")
 
-    audio_bytes = b"".join(audio)
+    update_translation_job_status(translation_job_id, 'processing')
 
-    upload_response = save_audio_to_s3(audio_bytes, bucket_name, desired_language + '_' + key)
-    logger.info(f"Upload response: {upload_response}")
+    audio_file = get_audio_from_s3(bucket_name, file_name)
+    transcribed_text = transcribe_audio(audio_file, media_file_id)
+    translated_text = translate_text(transcribed_text, target_language)
+    audio = generate_audio(translated_text)
+
+    new_file_name = file_name + "_" + target_language
+
+    save_audio_to_s3(audio, bucket_name, new_file_name)
+    duration_seconds = len(audio) // 16000
+    save_generated_audio(translation_job_id, new_file_name, duration_seconds, user_id)
 
     return
 
-def transcribe_audio(audio_file: tuple) -> str:
-    file_name, file_data = audio_file
-
-    response = open_ai_client.audio.transcriptions.create(model="gpt-4o-transcribe", file=(file_name, file_data))
-
-    return response.text
-
-def translate_text(text: str, desired_language: str) -> str:
-    response = open_ai_client.chat.completions.create(model="gpt-4o-mini", messages=[{"role": "user", "content": f"Translate the following text to {desired_language}: {text}"}])
-
-    return response.choices[0].message.content
-
-def stream_from_s3(bucket_name: str, key: str) -> tuple:
-    obj = s3.get_object(Bucket=bucket_name, Key=key)
-    file_data = obj['Body'].read()
-
-    return (key, file_data)
-
-def save_audio_to_s3(audio: bytes, bucket_name: str, key: str) -> dict:
-    return s3.put_object(Bucket=bucket_name, Key=key, Body=audio)
-
-def extract_audio_from_video(file_data: bytes) -> bytes:
-    process = subprocess.Popen(
-        ["ffmpeg", "-i", "pipe:0", "-vn", "-acodec", "libmp3lame", "-f", "mp3", "pipe:1"],
-        stdin=subprocess.PIPE,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.DEVNULL
-    )
-    audio_data, _ = process.communicate(file_data)
-    return audio_data
-
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
-    main()
+    bucket_name = os.getenv("AWS_BUCKET_NAME")
+    cloudfront_url = os.getenv("AWS_CLOUDFRONT_URL")
+    main({"Records": [{"body": json.dumps({"translationJobId": "cd1fc036-d640-47f5-ad65-0dd00356441e", "mediaFileId": "ea3035fa-53fc-40d3-9b67-9b5446c7c996", "targetLanguage": "English", "userId": "150512e1-4ff7-43a8-9b95-db69139a381a"})}]})
