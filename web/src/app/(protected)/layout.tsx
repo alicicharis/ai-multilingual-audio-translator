@@ -23,7 +23,7 @@ export default async function Layout({
       <AppSidebar />
       <SidebarInset>
         <SiteHeader />
-        <main className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 p-4">
+        <main className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 auto-rows-min gap-4 p-4 bg-primary-foreground min-h-screen items-start">
           {children}
         </main>
       </SidebarInset>
