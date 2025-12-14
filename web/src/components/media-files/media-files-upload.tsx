@@ -1,7 +1,14 @@
 'use client';
 
-import { createSignedURL } from '@/actions/media-files';
-import { AlertCircle, FileAudio, FileVideo, Upload, X } from 'lucide-react';
+import { createSignedURLAction } from '@/actions/media-files';
+import {
+  AlertCircle,
+  FileAudio,
+  FileVideo,
+  Loader2,
+  Upload,
+  X,
+} from 'lucide-react';
 import { useCallback, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { toast } from 'sonner';
@@ -19,6 +26,7 @@ const MediaFilesUpload = () => {
   const router = useRouter();
 
   const [files, setFiles] = useState<File[]>([]);
+  const [uploading, setUploading] = useState<boolean>(false);
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     setFiles((prev) => [...prev, ...acceptedFiles]);
@@ -56,13 +64,14 @@ const MediaFilesUpload = () => {
   };
 
   const uploadHandler = async () => {
+    setUploading(true);
     await Promise.all(
       files.map(async (file) => {
         try {
           const originalFilename = file.name;
           const duration = await getMediaDuration(file);
 
-          const { data } = await createSignedURL({
+          const { data } = await createSignedURLAction({
             originalFilename,
             durationSeconds: parseInt(duration?.toFixed(2)),
             fileType: file.type,
@@ -90,6 +99,7 @@ const MediaFilesUpload = () => {
     );
 
     router.refresh();
+    setUploading(false);
   };
 
   return (
@@ -196,8 +206,19 @@ const MediaFilesUpload = () => {
                 </div>
               ))}
             </div>
-            <Button className="w-full" onClick={uploadHandler}>
-              Upload files
+            <Button
+              className="w-full"
+              onClick={uploadHandler}
+              disabled={uploading}
+            >
+              {uploading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Uploading...
+                </>
+              ) : (
+                'Upload files'
+              )}
             </Button>
           </div>
         )}

@@ -1,11 +1,24 @@
 'use server';
 
-import { createMediaFile } from '@/db';
+import { createMediaFile, deleteMediaFile } from '@/db';
 import { authActionClient } from '@/lib/safe-action';
 import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import crypto from 'crypto';
 import { z } from 'zod';
+
+const generateFileName = (bytes = 32) =>
+  crypto.randomBytes(bytes).toString('hex');
+
+const allowedFileTypes = [
+  'audio/mpeg',
+  'audio/wav',
+  'audio/mp4',
+  'audio/ogg',
+  'audio/flac',
+  'audio/m4a',
+  'audio/mp3',
+];
 
 const maxFileSize = 1048576 * 10 * 100;
 
@@ -17,7 +30,7 @@ const s3Client = new S3Client({
   },
 });
 
-export const createSignedURL = authActionClient
+export const createSignedURLAction = authActionClient
   .inputSchema(
     z.object({
       originalFilename: z.string().min(1, 'Original filename is required'),
@@ -97,15 +110,26 @@ export const createSignedURL = authActionClient
     }
   );
 
-const generateFileName = (bytes = 32) =>
-  crypto.randomBytes(bytes).toString('hex');
-
-const allowedFileTypes = [
-  'audio/mpeg',
-  'audio/wav',
-  'audio/mp4',
-  'audio/ogg',
-  'audio/flac',
-  'audio/m4a',
-  'audio/mp3',
-];
+export const deleteMediaFileAction = authActionClient
+  .inputSchema(
+    z.object({
+      id: z.string().min(1, 'ID is required'),
+    })
+  )
+  .action(async ({ parsedInput: { id }, ctx }) => {
+    try {
+      await deleteMediaFile(ctx.supabase, { id, userId: ctx.user.id });
+      return {
+        success: true,
+        message: 'Media file deleted successfully',
+        data: null,
+      };
+    } catch (error) {
+      console.error('Error in deleteMediaFileAction: ', error);
+      return {
+        success: false,
+        message: 'Something went wrong',
+        data: null,
+      };
+    }
+  });

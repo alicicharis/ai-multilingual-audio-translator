@@ -44,3 +44,16 @@ export const createMediaFile = async (
     })
   );
 };
+
+export const deleteMediaFile = async (
+  supabase: SupabaseClient<Database>,
+  { id, userId }: { id: string; userId: string }
+) => {
+  return unwrap(
+    await supabase
+      .from('media_files')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', userId)
+  );
+};

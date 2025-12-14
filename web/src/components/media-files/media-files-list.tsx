@@ -1,4 +1,16 @@
-import { Download, Edit, FileAudio, MoreVertical, Trash2 } from 'lucide-react';
+'use client';
+
+import { deleteMediaFileAction } from '@/actions/media-files';
+import {
+  Download,
+  FileAudio,
+  Languages,
+  MoreVertical,
+  Trash2,
+} from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+import { toast } from 'sonner';
 import { Tables } from '../../../database.types';
 import { Button } from '../ui/button';
 import {
@@ -9,12 +21,29 @@ import {
   CardTitle,
 } from '../ui/card';
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../ui/dialog';
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '../ui/dropdown-menu';
+import { Label } from '../ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../ui/select';
+import { createTranslationJobAction } from '@/actions/translation-jobs';
 
 const MediaFilesList = ({
   mediaFiles,
@@ -37,6 +66,9 @@ const MediaFilesList = ({
 };
 
 const MediaFile = ({ mediaFile }: { mediaFile: Tables<'media_files'> }) => {
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [translateDialogOpen, setTranslateDialogOpen] = useState(false);
+
   return (
     <div className="group relative flex flex-col gap-2 border bg-primary-foreground rounded-lg p-4 hover:shadow-md transition-shadow duration-200">
       <div className="flex items-start justify-between gap-2">
@@ -48,7 +80,7 @@ const MediaFile = ({ mediaFile }: { mediaFile: Tables<'media_files'> }) => {
             <h3 className="text-sm font-semibold truncate">
               {mediaFile.original_filename}
             </h3>
-            <p className="text-xs mt-0.5">
+            <p className="text-xs mt-0.5" suppressHydrationWarning>
               {new Date(mediaFile.created_at ?? '').toLocaleDateString()}
             </p>
           </div>
@@ -70,12 +102,23 @@ const MediaFile = ({ mediaFile }: { mediaFile: Tables<'media_files'> }) => {
               <Download className="mr-2 h-4 w-4" />
               Download
             </DropdownMenuItem>
-            <DropdownMenuItem>
-              <Edit className="mr-2 h-4 w-4" />
-              Edit
+            <DropdownMenuItem
+              onSelect={(e) => {
+                e.preventDefault();
+                setTranslateDialogOpen(true);
+              }}
+            >
+              <Languages className="mr-2 h-4 w-4" />
+              Translate
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-destructive focus:text-destructive">
+            <DropdownMenuItem
+              className="text-destructive focus:text-destructive"
+              onSelect={(e) => {
+                e.preventDefault();
+                setDeleteDialogOpen(true);
+              }}
+            >
               <Trash2 className="mr-2 h-4 w-4" />
               Delete
             </DropdownMenuItem>
@@ -88,7 +131,174 @@ const MediaFile = ({ mediaFile }: { mediaFile: Tables<'media_files'> }) => {
           {mediaFile.media_type || 'Audio'}
         </span>
       </div>
+
+      <DeleteMediaFileDialog
+        mediaFile={mediaFile}
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+      />
+      <TranslateMediaFileDialog
+        mediaFile={mediaFile}
+        open={translateDialogOpen}
+        onOpenChange={setTranslateDialogOpen}
+      />
     </div>
+  );
+};
+
+const DeleteMediaFileDialog = ({
+  mediaFile,
+  open,
+  onOpenChange,
+}: {
+  mediaFile: Tables<'media_files'>;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) => {
+  const [isDeleting, setIsDeleting] = useState(false);
+  const router = useRouter();
+
+  const handleDelete = async () => {
+    setIsDeleting(true);
+    try {
+      const result = await deleteMediaFileAction({ id: mediaFile.id });
+
+      if (result?.data?.success) {
+        toast.success(result.data.message || 'Media file deleted successfully');
+        onOpenChange(false);
+        router.refresh();
+      } else {
+        toast.error(result?.data?.message || 'Failed to delete media file');
+      }
+    } catch (error) {
+      console.error('Error deleting media file:', error);
+      toast.error('An error occurred while deleting the media file');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Delete Media File</DialogTitle>
+          <DialogDescription>
+            Are you sure you want to delete "{mediaFile.original_filename}"?
+            This action cannot be undone and will permanently delete the media
+            file from our servers.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={isDeleting}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="destructive"
+            onClick={handleDelete}
+            disabled={isDeleting}
+          >
+            {isDeleting ? 'Deleting...' : 'Delete'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+const languages = [
+  { value: 'english', label: 'English' },
+  { value: 'spanish', label: 'Spanish' },
+  { value: 'french', label: 'French' },
+  { value: 'german', label: 'German' },
+  { value: 'italian', label: 'Italian' },
+];
+
+const TranslateMediaFileDialog = ({
+  mediaFile,
+  open,
+  onOpenChange,
+}: {
+  mediaFile: Tables<'media_files'>;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) => {
+  const [selectedLanguage, setSelectedLanguage] = useState<string>('english');
+  const [isTranslating, setIsTranslating] = useState(false);
+  const router = useRouter();
+
+  const handleTranslate = async () => {
+    setIsTranslating(true);
+    try {
+      const result = await createTranslationJobAction({
+        mediaFileId: mediaFile.id,
+        targetLanguage: selectedLanguage,
+      });
+      if (result?.data?.success) {
+        toast.success(
+          result.data.message || 'Translation job created successfully'
+        );
+        onOpenChange(false);
+        router.refresh();
+      } else {
+        toast.error(
+          result?.data?.message || 'Failed to create translation job'
+        );
+      }
+    } catch (error) {
+      console.error('Error in handleTranslate: ', error);
+      toast.error('Something went wrong');
+    } finally {
+      setIsTranslating(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Translate Media File</DialogTitle>
+          <DialogDescription>
+            Translate the media file to your preferred language.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="flex flex-col gap-2">
+          <Label>Language</Label>
+          <Select value={selectedLanguage} onValueChange={setSelectedLanguage}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select a language" />
+            </SelectTrigger>
+            <SelectContent>
+              {languages.map((language) => (
+                <SelectItem key={language.value} value={language.value}>
+                  {language.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <DialogFooter>
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={isTranslating}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="default"
+            onClick={handleTranslate}
+            disabled={isTranslating}
+          >
+            {isTranslating ? 'Translating...' : 'Translate'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };
 
