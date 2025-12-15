@@ -1,4 +1,4 @@
-import { File, Home } from 'lucide-react';
+import { File, Home, Languages } from 'lucide-react';
 
 import {
   Sidebar,
@@ -6,6 +6,7 @@ import {
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
+  SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
@@ -28,17 +29,24 @@ const items = [
 export function AppSidebar() {
   return (
     <Sidebar>
+      <SidebarHeader className="flex flex-row gap-2 items-center py-4 px-4">
+        <Languages className="size-6! text-primary" />
+        <span className="text-xl font-semibold block text-primary">
+          AI Translator
+        </span>
+      </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Application</SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu>
+            <SidebarMenu className="gap-3">
               {items.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <a href={item.url}>
-                      <item.icon />
-                      <span>{item.title}</span>
+                      <item.icon className="size-5!" />
+                      <span className="text-base font-medium">
+                        {item.title}
+                      </span>
                     </a>
                   </SidebarMenuButton>
                 </SidebarMenuItem>

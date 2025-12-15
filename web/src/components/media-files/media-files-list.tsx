@@ -103,8 +103,7 @@ const MediaFile = ({ mediaFile }: { mediaFile: Tables<'media_files'> }) => {
               Download
             </DropdownMenuItem>
             <DropdownMenuItem
-              onSelect={(e) => {
-                e.preventDefault();
+              onSelect={() => {
                 setTranslateDialogOpen(true);
               }}
             >
@@ -114,8 +113,7 @@ const MediaFile = ({ mediaFile }: { mediaFile: Tables<'media_files'> }) => {
             <DropdownMenuSeparator />
             <DropdownMenuItem
               className="text-destructive focus:text-destructive"
-              onSelect={(e) => {
-                e.preventDefault();
+              onSelect={() => {
                 setDeleteDialogOpen(true);
               }}
             >

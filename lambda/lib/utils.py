@@ -2,7 +2,9 @@ import os
 import subprocess
 from lib.s3 import s3
 
-def get_audio_from_s3(bucket_name: str, key: str) -> tuple:
+bucket_name = os.getenv("AWS_BUCKET_NAME")
+
+def get_audio_from_s3(key: str) -> tuple:
     obj = s3.get_object(Bucket=bucket_name, Key=key)
     file_data = obj['Body'].read()
 
@@ -11,7 +13,7 @@ def get_audio_from_s3(bucket_name: str, key: str) -> tuple:
 
     return (mp3_key, mp3_data)
 
-def save_audio_to_s3(audio: bytes, bucket_name: str, key: str) -> dict:
+def save_audio_to_s3(audio: bytes, key: str) -> dict:
     return s3.put_object(Bucket=bucket_name, Key=key, Body=audio, ContentType="audio/mp3")
 
 def convert_audio_to_mp3(audio_data: bytes) -> bytes:
