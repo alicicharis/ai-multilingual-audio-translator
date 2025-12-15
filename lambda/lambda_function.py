@@ -16,6 +16,13 @@ logger = logging.getLogger(__name__)
 def lambda_handler(event, context):
     logger.info(f"Event: {event}")
     request_body = json.loads(event['Records'][0]['body'])
+    
+    # Handle double-encoded JSON (body may be a JSON string within a JSON string)
+    if isinstance(request_body, str):
+        request_body = json.loads(request_body)
+
+    print(f"Request body: {request_body}")
+    
     try:
         media_file_id = request_body['mediaFileId']
         target_language = request_body['targetLanguage']
@@ -50,8 +57,8 @@ def lambda_handler(event, context):
         update_translation_job_status(translation_job_id, 'completed')
 
     except Exception as e:
-        logger.error(f"Error: {e}")
-        update_translation_job_status(translation_job_id, 'failed')
+        logger.error(f"Error in lambda_handler: {e}")
+        # update_translation_job_status(translation_job_id, 'failed')
         return
 
 # if __name__ == "__main__":

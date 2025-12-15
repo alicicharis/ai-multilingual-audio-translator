@@ -23,18 +23,36 @@ export const createTranslationJobAction = authActionClient
   )
   .action(async ({ parsedInput: { mediaFileId, targetLanguage }, ctx }) => {
     try {
-      const command = new SendMessageCommand({
-        QueueUrl: process.env.AWS_SQS_QUEUE_URL!,
-        MessageBody: JSON.stringify({ mediaFileId, targetLanguage }),
-        MessageGroupId: 'translation-jobs',
-        MessageDeduplicationId: crypto.randomBytes(16).toString('hex'),
-      });
-      await createTranslationJob(ctx.supabase, {
+      const translationJob = await createTranslationJob(ctx.supabase, {
         mediaFileId,
         targetLanguage,
         userId: ctx.user.id,
       });
+
+      if (!translationJob) {
+        throw new Error('Failed to create translation job');
+      }
+
+      const command = new SendMessageCommand({
+        QueueUrl: process.env.AWS_SQS_QUEUE_URL!,
+        MessageBody: JSON.stringify({
+          mediaFileId,
+          targetLanguage,
+          userId: ctx.user.id,
+          translationJobId: translationJob.id,
+        }),
+        MessageGroupId: translationJob.id,
+        MessageDeduplicationId: crypto.randomBytes(16).toString('hex'),
+      });
+
+      console.log('MESSAGE BODY: ', {
+        mediaFileId,
+        targetLanguage,
+        userId: ctx.user.id,
+        translationJobId: translationJob.id,
+      });
       await client.send(command);
+
       return {
         success: true,
         message: 'Translation job created successfully',

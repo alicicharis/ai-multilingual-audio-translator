@@ -1,6 +1,9 @@
 # Environment variables
 .env
 
+# Pacakge
+package/
+
 # Python
 __pycache__/
 *.py[cod]
