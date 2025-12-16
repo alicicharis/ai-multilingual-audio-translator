@@ -16,30 +16,33 @@ export type Database = {
     Tables: {
       generated_audio: {
         Row: {
-          audio_url: string
           created_at: string | null
           duration_seconds: number | null
+          file_name: string
           id: string
           translation_job_id: string | null
           tts_provider: string | null
+          user_id: string | null
           voice_id: string | null
         }
         Insert: {
-          audio_url: string
           created_at?: string | null
           duration_seconds?: number | null
+          file_name: string
           id?: string
           translation_job_id?: string | null
           tts_provider?: string | null
+          user_id?: string | null
           voice_id?: string | null
         }
         Update: {
-          audio_url?: string
           created_at?: string | null
           duration_seconds?: number | null
+          file_name?: string
           id?: string
           translation_job_id?: string | null
           tts_provider?: string | null
+          user_id?: string | null
           voice_id?: string | null
         }
         Relationships: [
@@ -48,6 +51,13 @@ export type Database = {
             columns: ["translation_job_id"]
             isOneToOne: false
             referencedRelation: "translation_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "generated_audio_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -118,30 +128,27 @@ export type Database = {
         Row: {
           created_at: string | null
           id: string
-          language: string
+          media_file_id: string | null
           transcript_text: string
-          translation_job_id: string | null
         }
         Insert: {
           created_at?: string | null
           id?: string
-          language: string
+          media_file_id?: string | null
           transcript_text: string
-          translation_job_id?: string | null
         }
         Update: {
           created_at?: string | null
           id?: string
-          language?: string
+          media_file_id?: string | null
           transcript_text?: string
-          translation_job_id?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "transcripts_translation_job_id_fkey"
-            columns: ["translation_job_id"]
-            isOneToOne: false
-            referencedRelation: "translation_jobs"
+            foreignKeyName: "transcripts_media_file_id_fkey"
+            columns: ["media_file_id"]
+            isOneToOne: true
+            referencedRelation: "media_files"
             referencedColumns: ["id"]
           },
         ]
@@ -199,44 +206,6 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      translations: {
-        Row: {
-          created_at: string | null
-          id: string
-          model: string | null
-          target_language: string
-          tone: string | null
-          translated_text: string
-          translation_job_id: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string
-          model?: string | null
-          target_language: string
-          tone?: string | null
-          translated_text: string
-          translation_job_id?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          id?: string
-          model?: string | null
-          target_language?: string
-          tone?: string | null
-          translated_text?: string
-          translation_job_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "translations_translation_job_id_fkey"
-            columns: ["translation_job_id"]
-            isOneToOne: false
-            referencedRelation: "translation_jobs"
             referencedColumns: ["id"]
           },
         ]

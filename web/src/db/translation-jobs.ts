@@ -1,5 +1,5 @@
 import { unwrap } from '@/lib/utils';
-import { Database } from '../../database.types';
+import { Database, Tables } from '../../database.types';
 import { SupabaseClient } from '@supabase/supabase-js';
 
 export const createTranslationJob = async (
@@ -25,5 +25,22 @@ export const createTranslationJob = async (
       })
       .select()
       .single()
+  );
+};
+
+export type TranslationJobWithMedia = Tables<'translation_jobs'> & {
+  media_files: Pick<Tables<'media_files'>, 'original_filename'> | null;
+};
+
+export const getTranslationJobs = async (
+  supabase: SupabaseClient<Database>,
+  { userId }: { userId: string }
+) => {
+  return unwrap(
+    await supabase
+      .from('translation_jobs')
+      .select('*, media_files(original_filename)')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
   );
 };

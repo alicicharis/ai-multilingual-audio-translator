@@ -114,7 +114,7 @@ const MediaFilesUpload = () => {
         <div
           {...getRootProps()}
           className={`
-            relative border-2 border-dashed rounded-lg p-12 text-center cursor-pointer
+            relative border-2 border-dashed rounded-lg p-6 text-center cursor-pointer
             transition-all duration-200 ease-in-out
             ${
               isDragActive && !isDragReject
