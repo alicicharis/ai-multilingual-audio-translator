@@ -1,4 +1,5 @@
 import Plans from '@/components/billing/plans';
+import { getUserSubscription, UserSubscription } from '@/db';
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 
@@ -13,9 +14,19 @@ const Page = async () => {
     redirect('/sign-in');
   }
 
+  const userSubscription: UserSubscription | null = await getUserSubscription(
+    supabase,
+    {
+      userId: user.id,
+    }
+  ).catch((error) => {
+    console.error('Error in getUserSubscription: ', error);
+    return null;
+  });
+
   return (
     <>
-      <Plans />
+      <Plans userSubscription={userSubscription} />
     </>
   );
 };

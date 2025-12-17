@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { stripe } from '@/lib/stripe';
 import { createClient } from '@/lib/supabase/server';
-import { getPlanById } from '@/db';
+import { getPlanById, getProfileById, updateProfile } from '@/db';
 
 export async function POST(request: Request) {
   const { planId } = await request.json();
@@ -25,10 +25,39 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Plan not found' }, { status: 404 });
   }
 
+  const userProfile = await getProfileById(supabase, { profileId: userId });
+
+  if (!userProfile) {
+    return NextResponse.json(
+      { error: 'User profile not found' },
+      { status: 404 }
+    );
+  }
+
+  let customerId = userProfile?.stripe_customer_id;
+
+  if (!customerId) {
+    const customer = await stripe.customers.create({
+      email: email,
+      metadata: {
+        userId: user.id,
+      },
+    });
+
+    customerId = customer.id;
+
+    await updateProfile(supabase, {
+      profileId: userId,
+      payload: {
+        stripe_customer_id: customerId,
+      },
+    });
+  }
+
   const session = await stripe.checkout.sessions.create({
     mode: 'subscription',
     payment_method_types: ['card'],
-    customer_email: email,
+    customer: customerId,
     line_items: [{ price: plan.stripe_price_id, quantity: 1 }],
     success_url: `${process.env.NEXT_PUBLIC_APP_URL}/billing?success=true`,
     cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/billing?success=false`,

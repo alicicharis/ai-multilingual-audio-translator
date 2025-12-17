@@ -1,6 +1,17 @@
 'use client';
 
-import { Check, Sparkles, X } from 'lucide-react';
+import { Check, Sparkles, X, Crown, AlertTriangle } from 'lucide-react';
+import { useState } from 'react';
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -11,6 +22,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
+import { UserSubscription } from '@/db';
 
 const plans = [
   {
@@ -80,15 +92,62 @@ const featureLabels = [
   'Dedicated support',
 ];
 
-const Plans = () => {
-  const handleSubscribe = async (planId: string) => {
+const Plans = ({
+  userSubscription,
+}: {
+  userSubscription: UserSubscription | null;
+}) => {
+  const [isCancelling, setIsCancelling] = useState(false);
+  const [isReactivating, setIsReactivating] = useState(false);
+
+  const cancelSubscriptionHandler = async () => {
+    setIsCancelling(true);
+    try {
+      const response = await fetch('/api/stripe/subscription/cancel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subscriptionId: userSubscription?.id }),
+      });
+
+      if (response.ok) {
+        window.location.reload();
+      }
+    } catch (error) {
+      console.error('Error cancelling subscription:', error);
+    } finally {
+      setIsCancelling(false);
+    }
+  };
+
+  const reactivateSubscriptionHandler = async () => {
+    setIsReactivating(true);
+    try {
+      const response = await fetch('/api/stripe/subscription/reactivate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subscriptionId: userSubscription?.id }),
+      });
+
+      if (response.ok) {
+        window.location.reload();
+      }
+    } catch (error) {
+      console.error('Error reactivating subscription:', error);
+    } finally {
+      setIsReactivating(false);
+    }
+  };
+
+  const subscribeHandler = async (planId: string) => {
     try {
       const response = await fetch('/api/stripe/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ planId }),
       });
+
       const { url } = await response.json();
+
       if (url) {
         window.location.href = url;
       }
@@ -100,6 +159,107 @@ const Plans = () => {
   return (
     <div className="col-span-full">
       {/* Header Section */}
+      {userSubscription && (
+        <Card className="mb-12 border-primary/30 bg-linear-to-br from-primary/5 via-transparent to-chart-2/5">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="size-12 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Crown className="size-6 text-primary" />
+                </div>
+                <div>
+                  <CardTitle className="text-xl">Your Current Plan</CardTitle>
+                  <CardDescription>
+                    You&apos;re currently subscribed to our services
+                  </CardDescription>
+                </div>
+              </div>
+              <div className="text-right">
+                <span className="text-3xl font-bold text-primary">
+                  {userSubscription.plans.name}
+                </span>
+                <p className="text-sm text-muted-foreground">
+                  Active subscription
+                </p>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between pt-4 border-t border-border/50">
+              {userSubscription.cancel_at_period_end ? (
+                <>
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <AlertTriangle className="size-4 text-amber-500" />
+                    <span>
+                      Your subscription is scheduled to cancel at the end of the
+                      billing period
+                    </span>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={reactivateSubscriptionHandler}
+                    disabled={isReactivating}
+                    className="text-primary border-primary/30 hover:bg-primary/10 hover:text-primary"
+                  >
+                    {isReactivating ? 'Reactivating...' : 'Reactivate Plan'}
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Check className="size-4 text-primary" />
+                    <span>
+                      Your subscription is active and renews automatically
+                    </span>
+                  </div>
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive"
+                      >
+                        Cancel Plan
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent showCloseButton={false}>
+                      <DialogHeader>
+                        <div className="flex items-center gap-3">
+                          <div className="size-10 rounded-full bg-destructive/10 flex items-center justify-center">
+                            <AlertTriangle className="size-5 text-destructive" />
+                          </div>
+                          <DialogTitle>Cancel Subscription?</DialogTitle>
+                        </div>
+                        <DialogDescription className="pt-2">
+                          Are you sure you want to cancel your{' '}
+                          <span className="font-semibold text-foreground">
+                            {userSubscription.plans.name}
+                          </span>{' '}
+                          subscription? You&apos;ll lose access to all premium
+                          features at the end of your current billing period.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <DialogFooter>
+                        <DialogClose asChild>
+                          <Button variant="outline">Keep Subscription</Button>
+                        </DialogClose>
+                        <Button
+                          onClick={cancelSubscriptionHandler}
+                          disabled={isCancelling}
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                          {isCancelling ? 'Cancelling...' : 'Yes, Cancel Plan'}
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                </>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
       <div className="text-center mb-12">
         <h1 className="text-4xl font-bold tracking-tight mb-4 bg-linear-to-r from-primary via-chart-2 to-chart-3 bg-clip-text text-transparent">
           Choose Your Plan
@@ -164,7 +324,7 @@ const Plans = () => {
 
             <CardFooter className="mt-auto">
               <Button
-                onClick={() => handleSubscribe(plan.id)}
+                onClick={() => subscribeHandler(plan.id)}
                 className={cn(
                   'w-full',
                   plan.popular
@@ -301,7 +461,7 @@ const Plans = () => {
                       )}
                     >
                       <Button
-                        onClick={() => handleSubscribe(plan.priceId)}
+                        onClick={() => subscribeHandler(plan.priceId)}
                         variant={plan.popular ? 'default' : 'outline'}
                         size="sm"
                       >

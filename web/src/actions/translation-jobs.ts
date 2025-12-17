@@ -45,12 +45,6 @@ export const createTranslationJobAction = authActionClient
         MessageDeduplicationId: crypto.randomBytes(16).toString('hex'),
       });
 
-      console.log('MESSAGE BODY: ', {
-        mediaFileId,
-        targetLanguage,
-        userId: ctx.user.id,
-        translationJobId: translationJob.id,
-      });
       await client.send(command);
 
       return {

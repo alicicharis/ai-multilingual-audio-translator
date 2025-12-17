@@ -1,5 +1,4 @@
-import { getProfileById, updateProfile } from '@/db';
-import { createSubscription } from '@/db/subscription';
+import { createSubscription, updateSubscription } from '@/db/subscription';
 import { stripe } from '@/lib/stripe';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { headers } from 'next/headers';
@@ -30,45 +29,78 @@ export async function POST(req: Request) {
 
       const userId = session.metadata?.userId;
       const planId = session.metadata?.planId;
-      const subscriptionId = session.subscription as string;
+      const stripeSubscriptionId = session.subscription as string;
       const customerId = session.customer as string;
 
-      if (!userId || !planId || !subscriptionId || !customerId) {
+      if (!userId || !planId || !stripeSubscriptionId || !customerId) {
         return NextResponse.json(
           { error: 'Missing required fields' },
           { status: 400 }
         );
       }
 
-      const userProfile = await getProfileById(supabase, { profileId: userId });
-
-      if (!userProfile) {
-        return NextResponse.json(
-          { error: 'User profile not found' },
-          { status: 404 }
-        );
-      }
-
-      if (!userProfile?.stripe_customer_id) {
-        await updateProfile(supabase, {
-          profileId: userId,
-          payload: { stripe_customer_id: customerId },
-        });
-      }
-
       await createSubscription(supabase, {
         userId,
         planId: planId,
-        subscriptionId: subscriptionId,
+        stripeSubscriptionId: stripeSubscriptionId,
       });
 
       break;
     }
 
-    case 'customer.subscription.deleted':
-      console.log('SUBSCRIPTION DELETED');
-      // ❌ Mark user unsubscribed
+    case 'customer.subscription.updated': {
+      const subscription = event.data.object as Stripe.Subscription;
+
+      const stripeSubscriptionId = subscription.id;
+      if (!stripeSubscriptionId) {
+        return NextResponse.json(
+          { error: 'Missing required fields' },
+          { status: 400 }
+        );
+      }
+
+      // Cancel subscription at the end of the period
+      if (
+        subscription?.cancel_at_period_end &&
+        subscription.status === 'active'
+      ) {
+        await updateSubscription(supabase, {
+          stripeSubscriptionId,
+          payload: { cancel_at_period_end: true, status: subscription.status },
+        });
+      }
+
+      // Continue canceled subscription
+      if (
+        !subscription?.cancel_at_period_end &&
+        subscription.status === 'active'
+      ) {
+        await updateSubscription(supabase, {
+          stripeSubscriptionId,
+          payload: { cancel_at_period_end: false, status: subscription.status },
+        });
+      }
+
       break;
+    }
+
+    case 'customer.subscription.deleted': {
+      const subscription = event.data.object as Stripe.Subscription;
+
+      const stripeSubscriptionId = subscription.id;
+      if (!stripeSubscriptionId) {
+        return NextResponse.json(
+          { error: 'Missing required fields' },
+          { status: 400 }
+        );
+      }
+
+      await updateSubscription(supabase, {
+        stripeSubscriptionId,
+        payload: { status: 'canceled' },
+      });
+      break;
+    }
   }
 
   return NextResponse.json({ received: true });

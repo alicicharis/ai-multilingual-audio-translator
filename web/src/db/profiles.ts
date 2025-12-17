@@ -1,6 +1,6 @@
 import { SupabaseClient } from '@supabase/supabase-js';
 import { unwrap } from '@/lib/utils';
-import { Database } from '../../database.types';
+import { Database, Tables } from '../../database.types';
 
 export const getProfileById = async (
   supabase: SupabaseClient<Database>,
@@ -8,6 +8,24 @@ export const getProfileById = async (
 ) => {
   return unwrap(
     await supabase.from('profiles').select('*').eq('id', profileId).single()
+  );
+};
+
+export type UserSubscription = Tables<'subscriptions'> & {
+  plans: Pick<Tables<'plans'>, 'id' | 'name'>;
+};
+
+export const getUserSubscription = async (
+  supabase: SupabaseClient<Database>,
+  { userId }: { userId: string }
+) => {
+  return unwrap(
+    await supabase
+      .from('subscriptions')
+      .select('*, plans(id, name)')
+      .eq('user_id', userId)
+      .eq('status', 'active')
+      .maybeSingle()
   );
 };
 
