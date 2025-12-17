@@ -2,6 +2,15 @@ import { SupabaseClient } from '@supabase/supabase-js';
 import { unwrap } from '@/lib/utils';
 import { Database } from '../../database.types';
 
+export const getProfileById = async (
+  supabase: SupabaseClient<Database>,
+  { profileId }: { profileId: string }
+) => {
+  return unwrap(
+    await supabase.from('profiles').select('*').eq('id', profileId).single()
+  );
+};
+
 export const updateProfile = async (
   supabase: SupabaseClient<Database>,
   {

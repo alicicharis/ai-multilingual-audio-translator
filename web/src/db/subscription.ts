@@ -6,16 +6,16 @@ export const createSubscription = async (
   supabase: SupabaseClient<Database>,
   {
     userId,
-    stripePriceId,
+    planId,
     subscriptionId,
-  }: { userId: string; stripePriceId: string; subscriptionId: string }
+  }: { userId: string; planId: string; subscriptionId: string }
 ) => {
   return unwrap(
     await supabase
       .from('subscriptions')
       .insert({
         status: 'active',
-        stripe_price_id: stripePriceId,
+        plan_id: planId,
         stripe_subscription_id: subscriptionId,
         user_id: userId,
         current_period_start: new Date().toISOString(),

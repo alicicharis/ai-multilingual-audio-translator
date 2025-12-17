@@ -1,4 +1,4 @@
-import { updateProfile } from '@/db';
+import { getProfileById, updateProfile } from '@/db';
 import { createSubscription } from '@/db/subscription';
 import { stripe } from '@/lib/stripe';
 import { createAdminClient } from '@/lib/supabase/admin';
@@ -30,9 +30,8 @@ export async function POST(req: Request) {
 
       const userId = session.metadata?.userId;
       const planId = session.metadata?.planId;
-      const priceId = session.metadata?.priceId;
-      const subscriptionId = session.subscription;
-      const customerId = session.customer;
+      const subscriptionId = session.subscription as string;
+      const customerId = session.customer as string;
 
       if (!userId || !planId || !subscriptionId || !customerId) {
         return NextResponse.json(
@@ -41,15 +40,26 @@ export async function POST(req: Request) {
         );
       }
 
-      await updateProfile(supabase, {
-        profileId: userId,
-        payload: { stripe_customer_id: customerId as string },
-      });
+      const userProfile = await getProfileById(supabase, { profileId: userId });
+
+      if (!userProfile) {
+        return NextResponse.json(
+          { error: 'User profile not found' },
+          { status: 404 }
+        );
+      }
+
+      if (!userProfile?.stripe_customer_id) {
+        await updateProfile(supabase, {
+          profileId: userId,
+          payload: { stripe_customer_id: customerId },
+        });
+      }
 
       await createSubscription(supabase, {
         userId,
-        stripePriceId: priceId as string,
-        subscriptionId: subscriptionId as string,
+        planId: planId,
+        subscriptionId: subscriptionId,
       });
 
       break;

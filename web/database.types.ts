@@ -170,8 +170,8 @@ export type Database = {
           current_period_end: string | null
           current_period_start: string | null
           id: string
+          plan_id: string
           status: string
-          stripe_price_id: string
           stripe_subscription_id: string
           updated_at: string
           user_id: string
@@ -182,8 +182,8 @@ export type Database = {
           current_period_end?: string | null
           current_period_start?: string | null
           id?: string
+          plan_id: string
           status: string
-          stripe_price_id: string
           stripe_subscription_id: string
           updated_at?: string
           user_id: string
@@ -194,13 +194,21 @@ export type Database = {
           current_period_end?: string | null
           current_period_start?: string | null
           id?: string
+          plan_id?: string
           status?: string
-          stripe_price_id?: string
           stripe_subscription_id?: string
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       transcripts: {
         Row: {
