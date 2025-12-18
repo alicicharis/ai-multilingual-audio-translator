@@ -19,13 +19,13 @@ export async function POST(request: Request) {
   const email = user.email;
   const userId = user.id;
 
-  const plan = await getPlanById(supabase, { planId });
+  const plan = await getPlanById(supabase, planId);
 
   if (!plan) {
     return NextResponse.json({ error: 'Plan not found' }, { status: 404 });
   }
 
-  const userProfile = await getProfileById(supabase, { profileId: userId });
+  const userProfile = await getProfileById(supabase, userId);
 
   if (!userProfile) {
     return NextResponse.json(
@@ -46,11 +46,8 @@ export async function POST(request: Request) {
 
     customerId = customer.id;
 
-    await updateProfile(supabase, {
-      profileId: userId,
-      payload: {
-        stripe_customer_id: customerId,
-      },
+    await updateProfile(supabase, userId, {
+      stripe_customer_id: customerId,
     });
   }
 

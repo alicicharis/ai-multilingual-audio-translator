@@ -15,16 +15,17 @@ const Page = async () => {
     redirect('/sign-in');
   }
 
-  const mediaFiles = await getMediaFiles(supabase, {
-    userId: data.user.id,
-  }).catch((error) => {
-    console.error('Error in getMediaFiles: ', error);
-    return [];
-  });
+  const mediaFiles = await getMediaFiles(supabase, data.user.id).catch(
+    (error) => {
+      console.error('Error in getMediaFiles: ', error);
+      return [];
+    }
+  );
 
-  const translationJobs = await getTranslationJobs(supabase, {
-    userId: data.user.id,
-  }).catch((error) => {
+  const translationJobs = await getTranslationJobs(
+    supabase,
+    data.user.id
+  ).catch((error) => {
     console.error('Error in getTranslationJobs: ', error);
     return [];
   });

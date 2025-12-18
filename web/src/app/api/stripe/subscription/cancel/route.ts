@@ -1,4 +1,4 @@
-import { getSubscriptionById } from '@/db/subscription';
+import { getSubscriptionById } from '@/db';
 import { stripe } from '@/lib/stripe';
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
@@ -8,7 +8,7 @@ export async function POST(req: Request) {
 
   const supabase = await createClient();
 
-  const subscription = await getSubscriptionById(supabase, { subscriptionId });
+  const subscription = await getSubscriptionById(supabase, subscriptionId);
 
   if (!subscription) {
     return NextResponse.json(

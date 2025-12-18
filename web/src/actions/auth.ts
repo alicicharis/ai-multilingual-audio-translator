@@ -11,7 +11,7 @@ export const signUpAction = actionClient
     try {
       const supabase = await createClient();
 
-      const newUser = await signUpUser(supabase, { email, password, username });
+      const newUser = await signUpUser(supabase, email, password, username);
 
       if (!newUser?.user?.id) {
         return {
@@ -42,7 +42,7 @@ export const signInAction = actionClient
     try {
       const supabase = await createClient();
 
-      const { error } = await signInUser(supabase, { email, password });
+      const { error } = await signInUser(supabase, email, password);
 
       if (error) {
         console.error('Erorr in signInAction: ', error);

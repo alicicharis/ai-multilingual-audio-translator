@@ -4,7 +4,7 @@ import { Database } from '../../database.types';
 
 export const getPlanById = async (
   supabase: SupabaseClient<Database>,
-  { planId }: { planId: string }
+  planId: string
 ) => {
   return unwrap(
     await supabase.from('plans').select('*').eq('id', planId).single()

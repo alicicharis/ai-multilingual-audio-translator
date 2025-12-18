@@ -4,11 +4,9 @@ import { SupabaseClient } from '@supabase/supabase-js';
 
 export const createTranslationJob = async (
   supabase: SupabaseClient<Database>,
-  {
-    mediaFileId,
-    targetLanguage,
-    userId,
-  }: { mediaFileId: string; targetLanguage: string; userId: string }
+  mediaFileId: string,
+  targetLanguage: string,
+  userId: string
 ) => {
   return unwrap(
     await supabase
@@ -34,7 +32,7 @@ export type TranslationJobWithMedia = Tables<'translation_jobs'> & {
 
 export const getTranslationJobs = async (
   supabase: SupabaseClient<Database>,
-  { userId }: { userId: string }
+  userId: string
 ) => {
   return unwrap(
     await supabase

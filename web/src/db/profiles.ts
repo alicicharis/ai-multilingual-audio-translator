@@ -1,49 +1,28 @@
-import { SupabaseClient } from '@supabase/supabase-js';
 import { unwrap } from '@/lib/utils';
-import { Database, Tables } from '../../database.types';
+import { SupabaseClient } from '@supabase/supabase-js';
+import { Database } from '../../database.types';
+
+type ProfileRow = Database['public']['Tables']['profiles']['Row'];
 
 export const getProfileById = async (
   supabase: SupabaseClient<Database>,
-  { profileId }: { profileId: string }
+  userId: string
 ) => {
   return unwrap(
-    await supabase.from('profiles').select('*').eq('id', profileId).single()
-  );
-};
-
-export type UserSubscription = Tables<'subscriptions'> & {
-  plans: Pick<Tables<'plans'>, 'id' | 'name'>;
-};
-
-export const getUserSubscription = async (
-  supabase: SupabaseClient<Database>,
-  { userId }: { userId: string }
-) => {
-  return unwrap(
-    await supabase
-      .from('subscriptions')
-      .select('*, plans(id, name)')
-      .eq('user_id', userId)
-      .eq('status', 'active')
-      .maybeSingle()
+    await supabase.from('profiles').select('*').eq('id', userId).single()
   );
 };
 
 export const updateProfile = async (
   supabase: SupabaseClient<Database>,
-  {
-    profileId,
-    payload,
-  }: {
-    profileId: string;
-    payload: Partial<Database['public']['Tables']['profiles']['Row']>;
-  }
+  userId: string,
+  payload: Partial<ProfileRow>
 ) => {
   return unwrap(
     await supabase
       .from('profiles')
-      .update({ ...payload })
-      .eq('id', profileId)
+      .update(payload)
+      .eq('id', userId)
       .select()
       .maybeSingle()
   );

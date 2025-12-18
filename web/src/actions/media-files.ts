@@ -86,12 +86,12 @@ export const createSignedURLAction = authActionClient
         });
 
         await createMediaFile(ctx.supabase, {
-          userId: ctx.user.id,
-          sourceUrl: process.env.AWS_CLOUDFRONT_URL! + fileName,
-          fileName: fileName,
-          originalFilename: originalFilename,
-          durationSeconds: durationSeconds,
-          mediaType: 'audio',
+          user_id: ctx.user.id,
+          source_url: process.env.AWS_CLOUDFRONT_URL! + fileName,
+          file_name: fileName,
+          original_filename: originalFilename,
+          duration_seconds: durationSeconds,
+          media_type: 'audio',
         });
 
         return {
@@ -118,7 +118,7 @@ export const deleteMediaFileAction = authActionClient
   )
   .action(async ({ parsedInput: { id }, ctx }) => {
     try {
-      await deleteMediaFile(ctx.supabase, { id, userId: ctx.user.id });
+      await deleteMediaFile(ctx.supabase, id, ctx.user.id);
       return {
         success: true,
         message: 'Media file deleted successfully',

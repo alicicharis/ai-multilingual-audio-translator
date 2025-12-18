@@ -2,9 +2,11 @@ import { SupabaseClient } from '@supabase/supabase-js';
 import { unwrap } from '@/lib/utils';
 import { Database } from '../../database.types';
 
+type MediaFileInsert = Database['public']['Tables']['media_files']['Insert'];
+
 export const getMediaFiles = async (
   supabase: SupabaseClient<Database>,
-  { userId }: { userId: string }
+  userId: string
 ) => {
   return unwrap(
     await supabase
@@ -17,37 +19,15 @@ export const getMediaFiles = async (
 
 export const createMediaFile = async (
   supabase: SupabaseClient<Database>,
-  {
-    userId,
-    sourceUrl,
-    originalFilename,
-    fileName,
-    durationSeconds,
-    mediaType,
-  }: {
-    userId: string;
-    sourceUrl: string;
-    originalFilename: string;
-    fileName: string;
-    durationSeconds: number;
-    mediaType: 'audio';
-  }
+  payload: MediaFileInsert
 ) => {
-  return unwrap(
-    await supabase.from('media_files').insert({
-      user_id: userId,
-      source_url: sourceUrl,
-      file_name: fileName,
-      media_type: mediaType,
-      original_filename: originalFilename,
-      duration_seconds: durationSeconds,
-    })
-  );
+  return unwrap(await supabase.from('media_files').insert(payload));
 };
 
 export const deleteMediaFile = async (
   supabase: SupabaseClient<Database>,
-  { id, userId }: { id: string; userId: string }
+  id: string,
+  userId: string
 ) => {
   return unwrap(
     await supabase

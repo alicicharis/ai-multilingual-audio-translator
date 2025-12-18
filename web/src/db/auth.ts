@@ -3,19 +3,17 @@ import { unwrap } from '@/lib/utils';
 
 export const signUpUser = async (
   supabase: SupabaseClient,
-  {
-    email,
-    password,
-    username,
-  }: { email: string; password: string; username: string }
+  email: string,
+  password: string,
+  username: string
 ) => {
   return unwrap(
     await supabase.auth.signUp({
-      email: email,
-      password: password,
+      email,
+      password,
       options: {
         data: {
-          username: username,
+          username,
         },
       },
     })
@@ -24,7 +22,8 @@ export const signUpUser = async (
 
 export const signInUser = async (
   supabase: SupabaseClient,
-  { email, password }: { email: string; password: string }
+  email: string,
+  password: string
 ) => {
   return await supabase.auth.signInWithPassword({
     email,
