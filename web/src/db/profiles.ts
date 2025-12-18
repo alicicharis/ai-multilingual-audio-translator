@@ -4,7 +4,7 @@ import { Database } from '../../database.types';
 
 type ProfileRow = Database['public']['Tables']['profiles']['Row'];
 
-export const getProfileById = async (
+export const getUserById = async (
   supabase: SupabaseClient<Database>,
   userId: string
 ) => {
@@ -13,7 +13,7 @@ export const getProfileById = async (
   );
 };
 
-export const updateProfile = async (
+export const updateUser = async (
   supabase: SupabaseClient<Database>,
   userId: string,
   payload: Partial<ProfileRow>
@@ -25,5 +25,18 @@ export const updateProfile = async (
       .eq('id', userId)
       .select()
       .maybeSingle()
+  );
+};
+
+export const getUserByStripeCustomerId = async (
+  supabase: SupabaseClient<Database>,
+  stripeCustomerId: string
+) => {
+  return unwrap(
+    await supabase
+      .from('profiles')
+      .select('*')
+      .eq('stripe_customer_id', stripeCustomerId)
+      .single()
   );
 };

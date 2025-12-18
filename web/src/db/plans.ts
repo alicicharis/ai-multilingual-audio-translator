@@ -10,3 +10,16 @@ export const getPlanById = async (
     await supabase.from('plans').select('*').eq('id', planId).single()
   );
 };
+
+export const getPlanByStripePriceId = async (
+  supabase: SupabaseClient<Database>,
+  priceId: string
+) => {
+  return unwrap(
+    await supabase
+      .from('plans')
+      .select('*')
+      .eq('stripe_price_id', priceId)
+      .single()
+  );
+};

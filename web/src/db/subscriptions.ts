@@ -56,3 +56,14 @@ export const getUserSubscription = async (
       .maybeSingle()
   );
 };
+
+export const upsertSubscription = async (
+  supabase: SupabaseClient<Database>,
+  payload: SubscriptionInsert
+) => {
+  return unwrap(
+    await supabase.from('subscriptions').upsert(payload, {
+      onConflict: 'stripe_subscription_id',
+    })
+  );
+};
